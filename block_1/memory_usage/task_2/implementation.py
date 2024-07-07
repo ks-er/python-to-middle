@@ -1,3 +1,6 @@
+import weakref
+
+
 class MyObject:
 
     def __init__(self, name) -> None:
@@ -6,7 +9,21 @@ class MyObject:
 
 
 def cache(func):
-    raise NotImplementedError
+    """
+    Обертка, помещающая объект в кэш
+    """
+    def wrapper(myObjectName):
+
+        if not hasattr(wrapper, '_cache'):
+            wrapper._cache = weakref.WeakValueDictionary()
+
+        if (myObjectName not in wrapper._cache):
+            value = func(myObjectName)
+            wrapper._cache[myObjectName] = value
+
+        return wrapper._cache[myObjectName]
+
+    return wrapper
 
 
 @cache
