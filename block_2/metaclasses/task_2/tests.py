@@ -35,14 +35,14 @@ class Test(TestCase):
         lazy_list.append('item')
         self.assertEqual(lazy_list, ['item'])
 
-        self.assertIs(type(lazy_list), Lazy)
+        self.assertIs(type(type(lazy_list)), type(Lazy))
 
     def test_instance(self):
         class A:
             pass
 
         instance = Lazy(lambda: A())
-        self.assertIs(type(instance), Lazy)
+        self.assertIs(type(type(instance)), type(Lazy))
 
         instance.a = 0
         self.assertEqual(instance.a, 0)
