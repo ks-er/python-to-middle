@@ -1,8 +1,8 @@
+import copy
 from dataclasses import dataclass
 import uuid
 import random
 from queue import LifoQueue, Empty
-# если нужно, импортируйте дополнительные модули
 
 
 @dataclass
@@ -12,7 +12,9 @@ class Cell:
     name: str = uuid.uuid4()
     size: int = random.randint(1, 10)
 
-    # если необходимо, снабдите Клетку функцией копирования
+    # функция копирования Клетки
+    def clone(self):
+        return copy.deepcopy(self)
 
 
 class PoolCell:
@@ -30,9 +32,11 @@ class PoolCell:
         try:
             cell = self.queue.get_nowait()
         except Empty:
-            # добавьте свой код сюда - необходимо скопировать эталлонную ячейку self.etalon_cell
-            cell.color = lambda: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+            # необходимо скопировать эталлонную ячейку self.etalon_cell
+            cell = self.etalon_cell.clone()
 
+        cell.color = lambda: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        self.queue.put_nowait(cell)
         return cell
 
     def release(self, cell):
@@ -41,10 +45,11 @@ class PoolCell:
         :param cell: возвращаемая клетка
         """
         # добавьте свой код сюда
+        self.queue.queue.remove(cell)
 
     def size(self):
         """Текущий размер пула"""
-        # добавьте свой код сюда
+        return self.queue.qsize()
 
 
 class LiveGame:

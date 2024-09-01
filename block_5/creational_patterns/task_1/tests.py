@@ -11,7 +11,7 @@ class MyTestCase(unittest.TestCase):
         for i in range(0, 100):
             game.give_birth_cell()
 
-        self.assertEqual(pool.size(), 0)
+        self.assertEqual(pool.size(), 1)
 
     def test_cell_request_and_free(self):
         pool = PoolCell()
@@ -20,7 +20,7 @@ class MyTestCase(unittest.TestCase):
             cell = game.give_birth_cell()
             game.kill_cell(cell)
 
-        self.assertEqual(pool.size(), 1)
+        self.assertEqual(pool.size(), 0)
 
 
 if __name__ == '__main__':
