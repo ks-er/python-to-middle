@@ -36,9 +36,8 @@ class PoolCell:
         except Empty:
             # необходимо скопировать эталлонную ячейку self.etalon_cell
             cell = self.etalon_cell.clone()
+            cell.color = lambda: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
-        cell.color = lambda: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        self.queue.put_nowait(cell)
         return cell
 
     def release(self, cell):
@@ -47,7 +46,7 @@ class PoolCell:
         :param cell: возвращаемая клетка
         """
         # добавьте свой код сюда
-        self.queue.queue.remove(cell)
+        self.queue.put_nowait(cell)
 
     def size(self):
         """Текущий размер пула"""
