@@ -14,7 +14,9 @@ class Cell:
 
     # функция копирования Клетки
     def clone(self):
-        return copy.deepcopy(self)
+        cell = copy.deepcopy(self)
+        cell.name = uuid.uuid4()
+        return cell
 
 
 class PoolCell:
