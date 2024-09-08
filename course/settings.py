@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from block_10.explain.task_1.apps import AppConfig
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'block_8.locks.task_2.apps.LocksTask2Config',
     'block_9.indexes.task_1.apps.IndexesTask1Config',
     'block_9.replication.task_1.apps.ReplicationTask1Config',
+    'block_10.explain.task_1.apps.ExplainConfig'
 ]
 
 MIDDLEWARE = [
@@ -60,7 +62,9 @@ ROOT_URLCONF = 'course.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / "block_10/explain/task_1/templates",
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,9 +87,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'python_to_middle',
-        'USER': 'course',
-        'PASSWORD': 'course',
-        'HOST': 'db',
+        'USER': 'postgres',
+        'PASSWORD': '1',
+        'HOST': '127.0.0.1',
         'PORT': '5432',
         'TEST': {
             'NAME': 'python_to_middle_test',
