@@ -50,7 +50,7 @@ class Importer:
         return list_for_save
 
     def import_books_list(self):
-
+        """TODO"""
         """Возвращает списки для импорта
                 - залов
                 - стеллажей
