@@ -50,7 +50,7 @@ class Importer:
         return list_for_save
 
     def import_books_list(self):
-        
+
         """Возвращает списки для импорта
                 - залов
                 - стеллажей
@@ -117,8 +117,6 @@ class Importer:
                     book_card.description += " " + row['Авторы']
 
         return books_to_save
-
-
 
 
 tt = Importer()

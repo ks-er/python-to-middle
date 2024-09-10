@@ -1,11 +1,10 @@
 import uuid
-from random import randint
 
 from django.db import (
     models,
 )
 
-from django.db.models import Manager, Count
+from django.db.models import Manager
 
 
 class Librarian(models.Model):
@@ -17,7 +16,7 @@ class Librarian(models.Model):
 
     last_name = models.CharField('Фамилия', max_length=30)
     name = models.CharField('Имя', max_length=30)
-    fired = models.BooleanField(default=False)
+    fired = models.BooleanField(default=False, verbose_name="Уволен")
 
     class Meta:
         db_table = 'librarian'
@@ -112,18 +111,33 @@ class Reader(models.Model):
         db_table = 'reader'
         app_label = 'admin'
 
+
 class ReaderCard(models.Model):
     """
     Карточка читателя
     """
     receipt_date = models.DateField('Дата получения', null=False, )
-    book = models.ForeignKey(BookCard, on_delete=models.CASCADE)
-    outside_library = models.BooleanField(default=False)
-    returned = models.BooleanField(default=False)
+    reader = models.ForeignKey(Reader, on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'reader_card'
         app_label = 'admin'
+
+class BookIssueJournal(models.Model):
+    """
+    Журнал выдачи книг
+    """
+    receipt_date = models.DateField('Дата выдачи', null=False, )
+    book = models.ForeignKey(BookCard, on_delete=models.CASCADE)
+    outside_library = models.BooleanField(default=False, verbose_name="Чтение вне библиотеки")
+    returned = models.BooleanField(default=False, verbose_name="Возвращено")
+    reader_card = models.ForeignKey(ReaderCard, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'book_issue_journal'
+        app_label = 'admin'
+
+
 
 
 

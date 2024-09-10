@@ -3,7 +3,7 @@ from django.test import (
 )
 
 from block_10.explain.task_1.implementation import Importer
-from block_10.explain.task_1.models import Librarian, PublicationType
+from block_10.explain.task_1.models import Librarian
 
 
 class ExplainTest(TestCase):
