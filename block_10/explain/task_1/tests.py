@@ -3,15 +3,13 @@ from django.test import (
 )
 
 from block_10.explain.task_1.implementation import Importer
-from block_10.explain.task_1.models import Librarian
+from block_10.explain.task_1.models import Librarian, PublicationType, BookCard
 
 
 class ExplainTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        #Set up non-modified objects used by all test methods
-
         #Librarian.objects.all().delete()
 
         librarians = [
@@ -34,7 +32,10 @@ class ExplainTest(TestCase):
         #Librarian.objects.bulk_create(librarians)
 
         #PublicationType.objects.all().delete()
-
         im = Importer()
-        publication_types = im.import_publication_type_list()
+        #publication_types = im.import_publication_type_list()
         #PublicationType.objects.bulk_create(publication_types)
+
+        #books = im.import_books_list(True)
+        #books1 = im.import_books_list()
+        #BookCard.objects.bulk_create(books1)

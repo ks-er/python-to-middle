@@ -39,7 +39,7 @@ class BookRoom(models.Model):
     Книжный зал
     """
     name = models.IntegerField('Номер зала', default=0)
-    librarian = models.ForeignKey(Librarian, on_delete=models.CASCADE)
+    librarian = models.ForeignKey(Librarian, on_delete=models.PROTECT)
 
     class Meta:
         db_table = 'book_room'
@@ -50,12 +50,13 @@ class BookRack(models.Model):
     """
     Стеллаж
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    room = models.ForeignKey(BookRoom, on_delete=models.CASCADE)
+    name = models.IntegerField('Номер стеллажа', default=0)
+    room = models.ForeignKey(BookRoom, on_delete=models.PROTECT, related_name='racks')
 
     class Meta:
         db_table = 'book_rack'
         app_label = 'admin'
+        unique_together = (('name', 'room'),)
 
 
 class BookShelf(models.Model):
@@ -63,23 +64,24 @@ class BookShelf(models.Model):
     Книжная полка
     """
     name = models.IntegerField('Номер полки', default=0)
-    rack = models.ForeignKey(BookRack, on_delete=models.CASCADE)
+    rack = models.ForeignKey(BookRack, on_delete=models.PROTECT, related_name='shelfs')
 
     class Meta:
         db_table = 'book_shelf'
         app_label = 'admin'
+        unique_together = (('name', 'rack'),)
 
 
 class BookCard(models.Model):
-    authors = models.CharField('Автор', max_length=50)
-    name = models.CharField('Название книги', max_length=30)
-    publication_type = models.ForeignKey(PublicationType, on_delete=models.CASCADE)
+    authors = models.CharField('Автор', max_length=500)
+    name = models.CharField('Название книги', max_length=500)
+    publication_type = models.ForeignKey(PublicationType, on_delete=models.PROTECT, related_name='books')
     publication_number = models.IntegerField('Номер', default=0)
     page_number = models.IntegerField('Количество страниц', default=0)
-    publication_date = models.DateField('Дата издания', null=True, )
-    description = models.CharField('Описание', max_length=1000)
-    isbn = models.CharField('ISBN', max_length=100, null=True)
-    book_shelf = models.ForeignKey(BookShelf, on_delete=models.CASCADE)
+    publication_date = models.DateField('Дата издания', null=True)
+    description = models.CharField('Описание', max_length=3000)
+    isbn = models.CharField('ISBN', max_length=500, null=True)
+    book_shelf = models.ForeignKey(BookShelf, on_delete=models.PROTECT, related_name='books')
 
     class Meta:
         db_table = 'book_card'
@@ -91,9 +93,9 @@ class MovementJournal(models.Model):
     Журнал перемещения
     """
     move_date = models.DateField('Дата перемещения', null=False, )
-    book = models.ForeignKey(BookCard, on_delete=models.CASCADE)
-    book_shelf_old = models.ForeignKey(BookShelf, on_delete=models.CASCADE, related_name="book_shelf_old")
-    book_shelf_new = models.ForeignKey(BookShelf, on_delete=models.CASCADE, related_name="book_shelf_new")
+    book = models.ForeignKey(BookCard, on_delete=models.PROTECT, related_name="m_journal")
+    book_shelf_old = models.ForeignKey(BookShelf, on_delete=models.PROTECT, related_name="old_shelfs")
+    book_shelf_new = models.ForeignKey(BookShelf, on_delete=models.PROTECT, related_name="new_shelfs")
 
     class Meta:
         db_table = 'movement_journal'
@@ -117,7 +119,7 @@ class ReaderCard(models.Model):
     Карточка читателя
     """
     receipt_date = models.DateField('Дата получения', null=False, )
-    reader = models.ForeignKey(Reader, on_delete=models.CASCADE)
+    reader = models.ForeignKey(Reader, on_delete=models.PROTECT)
 
     class Meta:
         db_table = 'reader_card'
@@ -128,17 +130,13 @@ class BookIssueJournal(models.Model):
     Журнал выдачи книг
     """
     receipt_date = models.DateField('Дата выдачи', null=False, )
-    book = models.ForeignKey(BookCard, on_delete=models.CASCADE)
+    book = models.ForeignKey(BookCard, on_delete=models.PROTECT, related_name='issue_journal')
     outside_library = models.BooleanField(default=False, verbose_name="Чтение вне библиотеки")
     returned = models.BooleanField(default=False, verbose_name="Возвращено")
-    reader_card = models.ForeignKey(ReaderCard, on_delete=models.CASCADE)
+    reader_card = models.ForeignKey(ReaderCard, on_delete=models.PROTECT, related_name='issue_journal')
 
     class Meta:
         db_table = 'book_issue_journal'
         app_label = 'admin'
-
-
-
-
 
 

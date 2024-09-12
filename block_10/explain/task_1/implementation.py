@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'course.settings')
 application = get_wsgi_application()
@@ -49,7 +51,7 @@ class Importer:
 
         return list_for_save
 
-    def import_books_list(self):
+    def import_books_list(self, save_objects = False):
         """TODO"""
         """Возвращает списки для импорта
                 - залов
@@ -67,56 +69,155 @@ class Importer:
         shelf_to_save = []
         books_to_save = []
 
-        with open('I://WORK//LEARN_CENTER//Python//python-to-middle//block_10//explain//task_1//books.csv',
-                  encoding='utf-8') as f:
+        symbol_to_replace = "#"
+
+        with (open('I://WORK//LEARN_CENTER//Python//python-to-middle//block_10//explain//task_1//books.csv',
+                  encoding='utf-8') as f):
             rows = csv.DictReader(f, delimiter='@')
 
             for row in rows:
                 publication_type = row['Вид издания']
                 if publication_type is not None:
                     if row['Аннотация'] is None:
-                        continue
+                        if (len(row['Вид издания']) == 4):
+                            book_card.publication_type = self.get_publication_type(row['Название издания'])
+                            book_card.name += row['Авторы'].replace(symbol_to_replace, "")
+                            book_card.publication_number=row['Вид издания'].replace(symbol_to_replace, "")
+                            book_card.page_number=self.get_page_number(row['Год издания'])
+                            book_card.publication_date=self.get_publication_date(row['Кол-во стр.'])
+                            book_card.ISBN=row['Срок окончания авторского договора']
+                            book_card.description = row['ISBN']
+                        else:
+                            # Что-то совсем кривое
+                            continue
                     else:
-                        if len(room_to_save) % 5 == 0:
+                        if len(books_to_save) % 300 == 0:
                             room = BookRoom(
                                 name=len(room_to_save) + 1,
                                 librarian=Librarian.objects.first()
                             )
-                            room_to_save.append(room)
-                            #BookRoom.objects.create(room)
 
-                        if len(racks_to_save) % 6 == 0:
+                            room_to_save.append(room)
+
+                        if len(books_to_save) % 60 == 0:
                             rack = BookRack(
+                                name=len(racks_to_save) + 1,
                                 room=room
                             )
-                            racks_to_save.append(rack)
-                            #BookRack.objects.create(rack)
 
-                        if len(shelf_to_save) % 10 == 0:
+                            racks_to_save.append(rack)
+
+                        if len(books_to_save) % 10 == 0:
                             shelf = BookShelf(
                                 name=len(shelf_to_save) + 1,
                                 rack=rack
                             )
+
                             shelf_to_save.append(shelf)
-                            #BookShelf.objects.create(shelf)
 
                         book_card = BookCard(
                             authors=row['Авторы'],
-                            name=row['Название издания'],
-                            # publication_type=row['Вид издания'],get
-
+                            name=row['Название издания'].replace(symbol_to_replace, ""),
+                            publication_type = self.get_publication_type(row['Вид издания']),
                             publication_number=row['Год издания'],
-                            page_number=row['Кол-во стр.'],
-                            publication_date=row['Срок окончания авторского договора'],
-                            description=row['Аннотация'],
-                            book_shelf=shelf
+                            page_number=self.get_page_number(row['Кол-во стр.']),
+                            publication_date=self.get_publication_date(row['Срок окончания авторского договора']),
+                            description=row['Аннотация'].replace(symbol_to_replace, ""),
+                            isbn=row['ISBN'],
+                            book_shelf=BookShelf.objects.filter(name=shelf.name).first()
                         )
+
                         books_to_save.append(book_card)
                 else:
-                    # это значит аннотация в нескольких строках
-                    book_card.description += " " + row['Авторы']
+                    publication_name = row['Название издания']
+                    if publication_name is not None:
+                        if len(books_to_save) % 300 == 0:
+                            room = BookRoom(
+                                name=len(room_to_save) + 1,
+                                librarian=Librarian.objects.first()
+                            )
+
+                            room_to_save.append(room)
+
+                        if len(books_to_save) % 60 == 0:
+                            rack = BookRack(
+                                name=len(racks_to_save) + 1,
+                                room=room
+                            )
+
+                            racks_to_save.append(rack)
+
+                        if len(books_to_save) % 10 == 0:
+                            shelf = BookShelf(
+                                name=len(shelf_to_save) + 1,
+                                rack=rack
+                            )
+
+                            shelf_to_save.append(shelf)
+
+                        book_card = BookCard(
+                            authors=row['Авторы'].replace(symbol_to_replace, ""),
+                            name=publication_name.replace(symbol_to_replace, ""),
+                            publication_type=PublicationType.objects.first(),
+                            book_shelf=BookShelf.objects.filter(name=shelf.name).first()
+                        )
+
+                        books_to_save.append(book_card)
+                    else:
+                        # это значит аннотация в нескольких строках
+                        if row['Авторы'] is not None:
+                            if book_card.description is None:
+                                book_card.description = row['Авторы'].replace(symbol_to_replace, "")
+                            else:
+                                book_card.description += " " + row['Авторы'].replace(symbol_to_replace, "")
+
+        if (save_objects):
+            BookRoom.objects.all().delete()
+            BookRack.objects.all().delete()
+            BookShelf.objects.all().delete()
+
+            BookRoom.objects.bulk_create(room_to_save)
+            BookRack.objects.bulk_create(racks_to_save)
+            BookShelf.objects.bulk_create(shelf_to_save)
 
         return books_to_save
+
+    def get_publication_type(self, publication_type):
+        pb_type = publication_type.strip().lower()
+        if ('худож' in pb_type and 'лит' in pb_type):
+            pb_type = 'худож. лит-ра'
+
+        return PublicationType.objects.filter(name__contains=pb_type).first()
+
+
+    def get_publication_date(self, pb_date_str):
+        if pb_date_str is None:
+            return None
+
+        pb_dat_list = pb_date_str.split('.')
+
+        if len(pb_dat_list) != 3:
+            return None
+        else:
+            try:
+                date = datetime(int(pb_dat_list[2]), int(pb_dat_list[1]), int(pb_dat_list[0]))
+            except :
+                year = pb_dat_list[2]
+                if len(pb_dat_list[2]) == 5:
+                    year = year[:-1]
+                date = datetime(int(year), int(pb_dat_list[1]), int(pb_dat_list[0])-1)
+            finally:
+                return date
+
+    def get_page_number(self, page_num):
+        if (page_num == 'ч. 1 - 99 ч. 2 - 144'):
+            return 243
+        elif (page_num == '322  328'):
+            return 650
+        elif (page_num == '344     360    356     242'):
+            return 1302
+
+        return page_num
 
 
 tt = Importer()

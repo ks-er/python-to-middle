@@ -4,7 +4,8 @@ from block_10.explain.task_1.tests import ExplainTest
 
 
 def index(request):
-    ExplainTest.setUpTestData()
+    """ Начальная загрузка данных """
+    #ExplainTest.setUpTestData()
 
     listTask1 = []
 
