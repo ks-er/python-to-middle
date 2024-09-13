@@ -2,7 +2,7 @@ from django.test import (
     TestCase,
 )
 
-from block_10.explain.task_1.implementation import Importer
+from block_10.explain.task_1.implementation import Importer, ReportHelper
 from block_10.explain.task_1.models import Librarian, PublicationType, BookCard
 
 
@@ -39,3 +39,15 @@ class ExplainTest(TestCase):
         #books = im.import_books_list(True)
         #books1 = im.import_books_list()
         #BookCard.objects.bulk_create(books1)
+
+    def test_books_count1(self):
+        self.assertEqual(ReportHelper.get_book_count_by_author('Безьев Д.А.'), 2)
+
+    def test_books_count2(self):
+        self.assertEqual(ReportHelper.get_book_count_in_library_by_author('Безьев Д.А.'), 1)
+
+    def test_popular_books(self):
+        self.assertEqual(len(ReportHelper.get_popular_books_for_month()), 2)
+
+    def test_moving_books(self):
+        self.assertEqual(len(ReportHelper.get_popular_moving_books_for_month()), 1)

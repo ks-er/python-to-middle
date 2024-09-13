@@ -6,7 +6,34 @@
 
 <body>
 
-ура
+<table border="1">
+    <thead>Самые читаемые книги месяца</thead>
+    <th>Название</th>
+    <th>Авторы</th>
+    <th>Количество записей в журнале</th>
+{% for book in popular_books %}
+    <tr>
+        <td> {{ book.name }} </td>
+        <td> {{ book.authors }} </td>
+        <td> {{ book.period_book_read }} </td>
+    </tr>
+{% endfor %}
+</table>
+
+<br><br>
+<table border="1">
+    <thead>Самые перемещаемые книги месяца</thead>
+    <th>Название</th>
+    <th>Авторы</th>
+    <th>Количество перемещений</th>
+{% for book in moving_books %}
+    <tr>
+        <td> {{ book.name }} </td>
+        <td> {{ book.authors }} </td>
+        <td> {{ book.moving_count }} </td>
+    </tr>
+{% endfor %}
+</table>
 
 </body>
 </html>

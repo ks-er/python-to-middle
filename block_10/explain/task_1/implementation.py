@@ -1,13 +1,18 @@
 import os
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
+from dateutil.relativedelta import relativedelta
 from django.core.wsgi import get_wsgi_application
+from django.db.models import Q, Count
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'course.settings')
 application = get_wsgi_application()
 
 import csv
 
-from block_10.explain.task_1.models import PublicationType, BookCard, BookShelf, BookRack, Librarian, BookRoom
+from block_10.explain.task_1.models import PublicationType, BookCard, BookShelf, BookRack, Librarian, BookRoom, \
+    BookIssueJournal
+
 
 class Importer:
     """Класс импортера данных в БД"""
@@ -220,5 +225,73 @@ class Importer:
         return page_num
 
 
-tt = Importer()
-tt.import_books_list()
+class ReportHelper:
+
+    @classmethod
+    def get_book_count_by_author(cls, author):
+        """Возвращает количество книг, числящихся в библиотеке по имени автора
+
+            Args:
+                author: автор книги
+
+            Returns: количество книг в библиотеке
+        """
+        query = BookCard.objects.filter(authors__contains=author)
+        return query.count()
+
+    @classmethod
+    def get_book_count_in_library_by_author(cls, author):
+        """Возвращает количество книг в библиотеке по имени автора, имеющиеся в наличии в библиотеке
+
+            Args:
+                author: автор книги
+
+            Returns: количество книг в наличии в библиотеке
+        """
+        book_id_list = list(BookIssueJournal.objects.filter(returned=False).values_list('book', flat=True))
+        query = BookCard.objects.filter(authors__contains=author).filter(~Q(id__in=book_id_list))
+
+        return query.count()
+
+    @classmethod
+    def get_popular_books_for_month(cls):
+        """Возвращает количество самых популярных книг за последний месяц
+
+            Returns: список самых популярных книг
+        """
+        current_date = date.today()
+        start_date = current_date - relativedelta(months=1)
+        q_start_date = Q(issue_journal__receipt_date__gte=start_date)
+        q_end_date = Q(issue_journal__receipt_date__lte=current_date)
+
+        query_popular_books = (BookCard.objects.annotate(
+            period_book_read=Count('issue_journal', filter=q_start_date & q_end_date)
+        ).filter(period_book_read__gt=0).order_by('-period_book_read'))[:10]
+
+        result = query_popular_books.values('name', 'authors', 'period_book_read')
+
+        return list(result)
+
+    @classmethod
+    def get_popular_moving_books_for_month(cls):
+        """Возвращает количество самых перемещаемых книг за последний месяц
+
+            Returns: список самых перемещаемых книг
+        """
+        current_date = date.today()
+        start_date = current_date - relativedelta(months=1)
+        q_start_date = Q(m_journal__move_date__gte=start_date)
+        q_end_date = Q(m_journal__move_date__lte=current_date)
+
+        query_moving_books = (BookCard.objects.annotate(
+            moving_count=Count('m_journal', filter=q_start_date & q_end_date)
+        ).filter(moving_count__gt=0).order_by('-moving_count'))[:10]
+
+        result = query_moving_books.values('name', 'authors', 'moving_count')
+
+        return list(result)
+
+
+#tt = ReportHelper()
+#tt = tt.get_popular_books_for_month()
+
