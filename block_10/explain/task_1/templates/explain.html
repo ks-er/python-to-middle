@@ -35,5 +35,61 @@
 {% endfor %}
 </table>
 
+<br><br>
+<table border="1">
+    <thead>Самые активные читатели месяца</thead>
+    <th>Фамилия</th>
+    <th>Имя</th>
+    <th>Количество книг</th>
+{% for reader in active_readers %}
+    <tr>
+        <td> {{ reader.reader__last_name }} </td>
+        <td> {{ reader.reader__name }} </td>
+        <td> {{ reader.book_count }} </td>
+    </tr>
+{% endfor %}
+</table>
+
+<br><br>
+<table border="1">
+    <thead>Читатели, которые просрочили возврат книг</thead>
+    <th>Фамилия</th>
+    <th>Имя</th>
+{% for reader in overdue_returns %}
+    <tr>
+        <td> {{ reader.last_name }} </td>
+        <td> {{ reader.name }} </td>
+    </tr>
+{% endfor %}
+</table>
+
+<br><br>
+<table border="1">
+    <thead>Количество книг, которые сейчас находятся на руках в разрезе читателей</thead>
+    <th>Фамилия</th>
+    <th>Имя</th>
+    <th>Количество книг</th>
+{% for reader in outside_library_readers %}
+    <tr>
+        <td> {{ reader.last_name }} </td>
+        <td> {{ reader.name }} </td>
+        <td> {{ reader.book_count }} </td>
+    </tr>
+{% endfor %}
+</table>
+
+<br><br>
+<table border="1">
+    <thead>Среднее количество страниц в разрезе видов изданий, которые прочитали читатели за последний месяц</thead>
+    <th>Вид издания</th>
+    <th>Среднее количество страниц</th>
+{% for read_pages in read_pages_by_publication %}
+    <tr>
+        <td> {{ read_pages.publication_type }} </td>
+        <td> {{ read_pages.avg_pages }} </td>
+    </tr>
+{% endfor %}
+</table>
+
 </body>
 </html>

@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 
 from dateutil.relativedelta import relativedelta
 from django.core.wsgi import get_wsgi_application
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Avg
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'course.settings')
 application = get_wsgi_application()
@@ -11,7 +11,7 @@ application = get_wsgi_application()
 import csv
 
 from block_10.explain.task_1.models import PublicationType, BookCard, BookShelf, BookRack, Librarian, BookRoom, \
-    BookIssueJournal
+    BookIssueJournal, ReaderCard
 
 
 class Importer:
@@ -291,7 +291,85 @@ class ReportHelper:
 
         return list(result)
 
+    @classmethod
+    def get_active_readers(cls):
+        """Возвращает 10 самых активных читателей, которые взяли больше всего книг, за прошедший месяц
+
+            Returns: список активных читателей
+        """
+        current_date = date.today()
+        start_date = current_date - relativedelta(months=1)
+        q_start_date = Q(issue_journal__receipt_date__gte=start_date)
+        q_end_date = Q(issue_journal__receipt_date__lte=current_date)
+
+        query_popular_books = (ReaderCard.objects.annotate(
+            book_count=Count('issue_journal', filter=q_start_date & q_end_date)
+        ).filter(book_count__gt=0).order_by('-book_count'))[:10]
+
+        result = query_popular_books.values('reader__last_name', 'reader__name', 'book_count')
+
+        return list(result)
+
+    @classmethod
+    def get_overdue_returns(cls):
+        """Возвращает Перечень читателей, которые просрочили возврат книг
+
+            Returns: список читателей
+        """
+
+        current_date = date.today()
+        returned_date = current_date - relativedelta(days=30)
+        q_returned_date = Q(receipt_date__lte=returned_date)
+        returned = Q(returned=False)
+
+        result = (BookIssueJournal.objects.filter(returned & q_returned_date)
+                  .prefetch_related('reader', 'reader_card__reader__last_name', 'reader_card__reader__name')
+                  .annotate(last_name=F('reader_card__reader__last_name'), name=F('reader_card__reader__name'))
+                  .order_by('last_name', 'name')
+                  .values('last_name', 'name'))
+
+        return list(result)
+
+    @classmethod
+    def get_outside_library_readers(cls):
+        """Возвращает Количество книг, которые сейчас находятся на руках в разрезе читателей
+
+            Returns: Количество книг в разрезе читателей
+        """
+
+        not_returned = Q(issue_journal__returned=False)
+
+        outside_library_readers = (ReaderCard.objects.annotate(
+            book_count=Count('issue_journal', filter=not_returned)
+        ).filter(book_count__gt=0))
+
+        result = (outside_library_readers
+            .annotate(last_name=F('reader__last_name'), name=F('reader__name'))
+            .values('last_name', 'name', 'book_count')
+            .order_by('-book_count', 'last_name', 'name'))
+
+        return list(result)
+
+    @classmethod
+    def get_read_pages_by_publication(cls):
+        """Возвращает Среднее количество страниц в разрезе видов изданий, которые прочитали читатели за последний месяц
+
+            Returns: список количества страниц по публикациям
+        """
+        current_date = date.today()
+        start_date = current_date - relativedelta(months=1)
+        q_start_date = Q(receipt_date__gte=start_date)
+        q_end_date = Q(receipt_date__lte=current_date)
+
+        result = (BookIssueJournal.objects.filter(q_start_date & q_end_date)
+                   .prefetch_related('publication_type', 'book__publication_type__name')
+                   .annotate(publication_type=F('book__publication_type__name'))
+                   .values('publication_type')
+                   .annotate(avg_pages=Avg(F('book__page_number'))))
+
+        return list(result)
+
 
 #tt = ReportHelper()
-#tt = tt.get_popular_books_for_month()
+#tt = tt.get_read_pages_by_publication()
 

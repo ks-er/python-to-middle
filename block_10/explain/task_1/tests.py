@@ -47,7 +47,19 @@ class ExplainTest(TestCase):
         self.assertEqual(ReportHelper.get_book_count_in_library_by_author('Безьев Д.А.'), 1)
 
     def test_popular_books(self):
-        self.assertEqual(len(ReportHelper.get_popular_books_for_month()), 2)
+        self.assertEqual(len(ReportHelper.get_popular_books_for_month()), 3)
 
     def test_moving_books(self):
         self.assertEqual(len(ReportHelper.get_popular_moving_books_for_month()), 1)
+
+    def test_active_readers(self):
+        self.assertEqual(len(ReportHelper.get_active_readers()), 1)
+
+    def test_overdue_returns(self):
+        self.assertEqual(len(ReportHelper.get_overdue_returns()), 1)
+
+    def test_outside_library_readers(self):
+        self.assertEqual(len(ReportHelper.get_outside_library_readers()), 2)
+
+    def test_read_pages_by_publication(self):
+        self.assertEqual(len(ReportHelper.get_read_pages_by_publication()), 2)
