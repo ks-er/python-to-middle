@@ -4,6 +4,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from django.core.wsgi import get_wsgi_application
 from django.db.models import Q, Count, F, Avg
+from django.core.exceptions import ValidationError
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'course.settings')
 application = get_wsgi_application()
@@ -11,7 +12,7 @@ application = get_wsgi_application()
 import csv
 
 from block_10.explain.task_1.models import PublicationType, BookCard, BookShelf, BookRack, Librarian, BookRoom, \
-    BookIssueJournal, ReaderCard
+    BookIssueJournal, ReaderCard, Reader
 
 
 class Importer:
@@ -186,6 +187,45 @@ class Importer:
             BookShelf.objects.bulk_create(shelf_to_save)
 
         return books_to_save
+
+    def add_empty_shelfs(self):
+        room_count = BookRoom.objects.count()
+        rack_to_add_count = room_count * 5 - BookRack.objects.count()
+
+        need_shelf_count = room_count * 5 * 6
+        new_shelf_count = rack_to_add_count * 6
+        shelf_count = BookShelf.objects.count()
+
+        shelf_count_to_last = need_shelf_count - new_shelf_count - shelf_count
+
+        last_rack = BookRack.objects.order_by("-id")[0]
+        shelf_to_save = []
+        shelf_num = 6 - shelf_count_to_last + 1
+        for i in range(shelf_count_to_last):
+            shelf_to_save.append(BookShelf(
+                name=shelf_num+i,
+                rack=last_rack
+            ))
+
+        racks_to_save = []
+        last_room = last_rack.room
+        rack_num = 5 - rack_to_add_count + 1
+        for i in range(rack_to_add_count):
+            rack = BookRack(
+                name=rack_num+i,
+                room=last_room
+            )
+            racks_to_save.append(rack)
+
+            for shelf_number in range(6):
+                shelf_to_save.append(BookShelf(
+                    name=shelf_number + 1,
+                    rack=rack
+                ))
+
+        BookRack.objects.bulk_create(racks_to_save)
+        BookShelf.objects.bulk_create(shelf_to_save)
+
 
     def get_publication_type(self, publication_type):
         pb_type = publication_type.strip().lower()
@@ -370,6 +410,25 @@ class ReportHelper:
         return list(result)
 
 
-#tt = ReportHelper()
-#tt = tt.get_read_pages_by_publication()
+reader = Reader.objects.get(id=1)
+book1 = BookCard.objects.get(id=785)
+book2 = BookCard.objects.get(id=578)
+book3 = BookCard.objects.get(id=555)
+
+try:
+    reader.take_book(book1, True)
+except ValidationError as exc:
+    print(exc)
+
+try:
+    #reader.take_book(book2, True)
+    reader.take_book(book3, True)
+except ValidationError as exc:
+    print(exc)
+
+try:
+    book465 = BookCard.objects.get(id=465)
+    reader.return_book(book465)
+except ValidationError as exc:
+    print(exc)
 

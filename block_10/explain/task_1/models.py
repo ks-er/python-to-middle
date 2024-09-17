@@ -1,6 +1,10 @@
+import datetime
+
 from django.db import (
     models,
 )
+from django.db.models import Q, Count
+from django.core.exceptions import ValidationError
 
 
 class Librarian(models.Model):
@@ -62,6 +66,13 @@ class BookShelf(models.Model):
     name = models.IntegerField('Номер полки', default=0)
     rack = models.ForeignKey(BookRack, on_delete=models.PROTECT, related_name='shelfs')
 
+    @property
+    def empty_shelf(self):
+        shelf = BookShelf.objects.annotate(
+            book_count=Count('books')
+        ).filter(book_count__lt=10).first()
+        return shelf
+
     class Meta:
         db_table = 'book_shelf'
         app_label = 'admin'
@@ -104,6 +115,63 @@ class Reader(models.Model):
     """
     last_name = models.CharField('Фамилия', max_length=30)
     name = models.CharField('Имя', max_length=30)
+
+    @property
+    def reader_card(self):
+        return ReaderCard.objects.get(reader=self)
+
+    @property
+    def books_on_hands(self):
+        return (BookIssueJournal.objects.filter(returned=False)
+                 .prefetch_related('reader')
+                 .filter(reader_card__reader__id=self.id).count())
+
+
+    def take_book(self, book, outside_library):
+        not_returned = Q(returned=False)
+        q_book = Q(book__id=book.id)
+        journal_records = BookIssueJournal.objects.filter(q_book & not_returned).count()
+
+        if journal_records > 0:
+            raise ValidationError("Книги нет в наличии в библиотеке.")
+
+        if self.books_on_hands == 3:
+            raise ValidationError("Нельзя взять 4ую книгу для прочтения. Необходимо вернуть предыдущие книги.")
+
+        BookIssueJournal.objects.create(
+            receipt_date=datetime.date.today(),
+            outside_library=outside_library,
+            book=book,
+            reader_card=self.reader_card
+        )
+
+    def return_book(self, book):
+        """
+        Возвращение книги на первую свободную полку
+        1. Ставится признак возврата книги в журнале выдачи книг
+        2. Ставится пометка о перемещении книги на первую свободную полку
+        3. Делается запись в журнале перемещения книг
+        """
+        not_returned = Q(returned=False)
+        q_book = Q(book__id=book.id)
+        reader_card = Q(reader_card=self.reader_card)
+        book_to_return = BookIssueJournal.objects.filter(q_book & not_returned & reader_card).count()
+
+        if book_to_return == 0:
+            raise ValidationError("Книга уже была возвращена")
+
+        BookIssueJournal.objects.filter(q_book & not_returned & reader_card).update(returned=True)
+
+        old__shelf = book.book_shelf
+        new_shelf = old__shelf.empty_shelf
+        BookCard.objects.filter(id=book.id).update(book_shelf=new_shelf)
+
+        MovementJournal.objects.create(
+            move_date=datetime.date.today(),
+            book=book,
+            book_shelf_new=new_shelf,
+            book_shelf_old=old__shelf)
+
 
     class Meta:
         db_table = 'reader'
