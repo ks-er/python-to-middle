@@ -363,7 +363,6 @@ class ReportHelper:
         returned = Q(returned=False)
 
         result = (BookIssueJournal.objects.filter(returned & q_returned_date)
-                  .prefetch_related('reader', 'reader_card__reader__last_name', 'reader_card__reader__name')
                   .annotate(last_name=F('reader_card__reader__last_name'), name=F('reader_card__reader__name'))
                   .order_by('last_name', 'name')
                   .values('last_name', 'name'))
@@ -402,7 +401,6 @@ class ReportHelper:
         q_end_date = Q(receipt_date__lte=current_date)
 
         result = (BookIssueJournal.objects.filter(q_start_date & q_end_date)
-                   .prefetch_related('publication_type', 'book__publication_type__name')
                    .annotate(publication_type=F('book__publication_type__name'))
                    .values('publication_type')
                    .annotate(avg_pages=Avg(F('book__page_number'))))

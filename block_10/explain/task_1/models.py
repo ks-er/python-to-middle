@@ -1,4 +1,5 @@
 import datetime
+from functools import cached_property
 
 from django.db import (
     models,
@@ -58,20 +59,23 @@ class BookRack(models.Model):
         app_label = 'admin'
         unique_together = (('name', 'room'),)
 
+class BookShelfManager(models.Manager):
+
+    def get_empty_shelf(self):
+        shelf = BookShelf.objects.annotate(
+            book_count=Count('books')
+        ).filter(book_count__lt=10).first()
+        return shelf
+
 
 class BookShelf(models.Model):
     """
     Книжная полка
     """
+    bs_objects = BookShelfManager()
+
     name = models.IntegerField('Номер полки', default=0)
     rack = models.ForeignKey(BookRack, on_delete=models.PROTECT, related_name='shelfs')
-
-    @property
-    def empty_shelf(self):
-        shelf = BookShelf.objects.annotate(
-            book_count=Count('books')
-        ).filter(book_count__lt=10).first()
-        return shelf
 
     class Meta:
         db_table = 'book_shelf'
@@ -116,20 +120,19 @@ class Reader(models.Model):
     last_name = models.CharField('Фамилия', max_length=30)
     name = models.CharField('Имя', max_length=30)
 
-    @property
+    @cached_property
     def reader_card(self):
         return ReaderCard.objects.get(reader=self)
 
-    @property
+    @cached_property
     def books_on_hands(self):
         return (BookIssueJournal.objects.filter(returned=False)
-                 .prefetch_related('reader')
-                 .filter(reader_card__reader__id=self.id).count())
+                .filter(reader_card__reader=self).count())
 
 
     def take_book(self, book, outside_library):
         not_returned = Q(returned=False)
-        q_book = Q(book__id=book.id)
+        q_book = Q(book=book.pk)
         journal_records = BookIssueJournal.objects.filter(q_book & not_returned).count()
 
         if journal_records > 0:
@@ -153,7 +156,7 @@ class Reader(models.Model):
         3. Делается запись в журнале перемещения книг
         """
         not_returned = Q(returned=False)
-        q_book = Q(book__id=book.id)
+        q_book = Q(book=book.pk)
         reader_card = Q(reader_card=self.reader_card)
         book_to_return = BookIssueJournal.objects.filter(q_book & not_returned & reader_card).count()
 
@@ -163,8 +166,8 @@ class Reader(models.Model):
         BookIssueJournal.objects.filter(q_book & not_returned & reader_card).update(returned=True)
 
         old__shelf = book.book_shelf
-        new_shelf = old__shelf.empty_shelf
-        BookCard.objects.filter(id=book.id).update(book_shelf=new_shelf)
+        new_shelf = BookShelf.bs_objects.get_empty_shelf()
+        BookCard.objects.filter(id=book.pk).update(book_shelf=new_shelf)
 
         MovementJournal.objects.create(
             move_date=datetime.date.today(),
