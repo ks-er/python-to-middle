@@ -2,9 +2,10 @@ import os
 from datetime import datetime, date, timedelta
 
 from dateutil.relativedelta import relativedelta
+from django.contrib.postgres.expressions import ArraySubquery
 from django.core.wsgi import get_wsgi_application
-from django.db.models import Q, Count, F, Avg, OuterRef, Subquery
-from django.core.exceptions import ValidationError
+from django.db.models import Q, Count, F, Avg, OuterRef, Subquery, Exists
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "course.settings")
 application = get_wsgi_application()
@@ -21,6 +22,7 @@ from block_10.explain.task_1.models import (
     BookIssueJournal,
     ReaderCard,
     Reader,
+    MovementJournal,
 )
 
 
@@ -448,6 +450,80 @@ class ReportHelper:
         )
 
         return list(result)
+
+    @classmethod
+    def get_halls_list(cls):
+        """
+        Выводит список всех залов с наименованием всех связанных стеллажей и полок
+        """
+        f1 = Q(rack=OuterRef("order__date_formation"))
+
+        rooms_qs = BookRoom.objects.filter(id=OuterRef("room_id"))
+
+        racks_qs = BookRack.objects.filter(id=OuterRef("rack"))
+
+        rooms_info = (
+            BookShelf.bs_objects.all()
+            .annotate(
+                shelf_name=F("name"),
+                rack_name=Subquery(racks_qs.values("name")[:1]),
+                room_id=Subquery(racks_qs.values("room")[:1]),
+            )
+            .annotate(room_name=Subquery(rooms_qs.values("name")[:1]))
+            .values("room_name", "rack_name", "shelf_name")
+        )
+
+        return list(rooms_info)
+
+    @classmethod
+    def get_unpopular_books(cls):
+        """
+        Выводит список всех типов публикаций,
+        каждая из них содержит наименование книг, которые ни разу не брали читать
+        """
+        unpopular_books = BookCard.objects.annotate(
+            book_name=F("name"),
+            popular=Exists(BookIssueJournal.objects.filter(book=OuterRef("pk"))),
+        ).filter(popular=False)
+
+        pb_type_qs = PublicationType.objects.filter(id=OuterRef("publication_type"))
+
+        result = (
+            unpopular_books.annotate(
+                pb_type_name=Subquery(pb_type_qs.values("name")[:1])
+            )
+            .values("pb_type_name", "book_name")
+            .order_by("pb_type_name", "book_name")
+        )
+
+        return list(result)
+
+    @classmethod
+    def get_books_moving_history(cls):
+        """
+        Выводит список всех книг,
+        У каждой из этих книг есть история перемещения между полками с наименованием каждой из них:
+        один атрибут - полки в алфавитном порядке, второй атрибут - в хронологическом.
+        """
+
+        qq = MovementJournal.objects.filter(book=OuterRef("pk"))
+        tt = ArraySubquery(
+            qq.order_by("book_shelf_new__name").values(
+                "move_date", shelf_name=F("book_shelf_new__name")
+            )
+        )
+
+        tt1 = ArraySubquery(
+            qq.order_by("move_date").values(
+                "move_date", shelf_name=F("book_shelf_new__name")
+            )
+        )
+
+        qs_result = BookCard.objects.annotate(
+            book_name=F("name"), moving_shelfs_history=tt, moving_shelfs_history1=tt1
+        ).values("book_name", "moving_shelfs_history", "moving_shelfs_history1")
+
+        return qs_result
 
 
 reader = Reader.objects.get(id=1)

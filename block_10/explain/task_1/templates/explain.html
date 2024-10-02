@@ -91,5 +91,34 @@
 {% endfor %}
 </table>
 
+
+<br><br>
+<table border="1">
+    <thead>Информация о книжных залах</thead>
+    <th>Зал</th>
+    <th>Стеллаж</th>
+    <th>Полка</th>
+{% for room_info in rooms_info_list %}
+    <tr>
+        <td> {{ room_info.room_name }} </td>
+        <td> {{ room_info.rack_name }} </td>
+        <td> {{ room_info.shelf_name }} </td>
+    </tr>
+{% endfor %}
+</table>
+
+<br><br>
+<table border="1">
+    <thead>Непопулярные издания и книги</thead>
+    <th>Вид издания</th>
+    <th>Наименование книги</th>
+{% for book in unpopular_books %}
+    <tr>
+        <td> {{ book.pb_type_name }} </td>
+        <td> {{ book.book_name }} </td>
+    </tr>
+{% endfor %}
+</table>
+
 </body>
 </html>
