@@ -24,6 +24,9 @@ class Librarian(models.Model):
         db_table = "librarian"
         app_label = "admin"
 
+    def __str__(self):
+        return self.last_name + " " + self.name
+
 
 class PublicationType(models.Model):
     """
@@ -35,6 +38,9 @@ class PublicationType(models.Model):
     class Meta:
         db_table = "publication_type"
         app_label = "admin"
+
+    def __str__(self):
+        return self.name
 
 
 class BookRoom(models.Model):
@@ -49,6 +55,9 @@ class BookRoom(models.Model):
         db_table = "book_room"
         app_label = "admin"
 
+    def __str__(self):
+        return f"Зал № {self.name}"
+
 
 class BookRack(models.Model):
     """
@@ -62,6 +71,9 @@ class BookRack(models.Model):
         db_table = "book_rack"
         app_label = "admin"
         unique_together = (("name", "room"),)
+
+    def __str__(self):
+        return f"Стеллаж № {self.name} (зал {self.room__name})"
 
 
 class BookShelfManager(models.Manager):
@@ -81,6 +93,7 @@ class BookShelf(models.Model):
     """
 
     bs_objects = BookShelfManager()
+    objects = models.Manager()
 
     name = models.IntegerField("Номер полки", default=0)
     rack = models.ForeignKey(BookRack, on_delete=models.PROTECT, related_name="shelfs")
@@ -89,6 +102,9 @@ class BookShelf(models.Model):
         db_table = "book_shelf"
         app_label = "admin"
         unique_together = (("name", "rack"),)
+
+    def __str__(self):
+        return f"Полка {self.name} (cтеллаж {self.rack__name}, зал {self.rack__room__name})"
 
 
 class BookCard(models.Model):
@@ -109,6 +125,9 @@ class BookCard(models.Model):
     class Meta:
         db_table = "book_card"
         app_label = "admin"
+
+    def __str__(self):
+        return self.name
 
 
 class MovementJournal(models.Model):
@@ -133,6 +152,9 @@ class MovementJournal(models.Model):
     class Meta:
         db_table = "movement_journal"
         app_label = "admin"
+
+    def __str__(self):
+        return f"{self.move_date}: {self.book__name}"
 
 
 class Reader(models.Model):
@@ -211,6 +233,9 @@ class Reader(models.Model):
         db_table = "reader"
         app_label = "admin"
 
+    def __str__(self):
+        return self.last_name + " " + self.name
+
 
 class ReaderCard(models.Model):
     """
@@ -226,6 +251,9 @@ class ReaderCard(models.Model):
     class Meta:
         db_table = "reader_card"
         app_label = "admin"
+
+    def __str__(self):
+        return f"{self.id}"
 
 
 class BookIssueJournal(models.Model):
@@ -251,3 +279,6 @@ class BookIssueJournal(models.Model):
     class Meta:
         db_table = "book_issue_journal"
         app_label = "admin"
+
+    def __str__(self):
+        return f"{self.receipt_date}: {self.book__name}, карточка читателя:{self.reader_card}"

@@ -456,22 +456,15 @@ class ReportHelper:
         """
         Выводит список всех залов с наименованием всех связанных стеллажей и полок
         """
-        f1 = Q(rack=OuterRef("order__date_formation"))
-
         rooms_qs = BookRoom.objects.filter(id=OuterRef("room_id"))
-
         racks_qs = BookRack.objects.filter(id=OuterRef("rack"))
 
-        rooms_info = (
-            BookShelf.bs_objects.all()
-            .annotate(
-                shelf_name=F("name"),
-                rack_name=Subquery(racks_qs.values("name")[:1]),
-                room_id=Subquery(racks_qs.values("room")[:1]),
-            )
-            .annotate(room_name=Subquery(rooms_qs.values("name")[:1]))
-            .values("room_name", "rack_name", "shelf_name")
-        )
+        rooms_info = BookShelf.bs_objects.annotate(
+            shelf_name=F("name"),
+            rack_name=Subquery(racks_qs.values("name")[:1]),
+            room_id=Subquery(racks_qs.values("room")[:1]),
+            room_name=Subquery(rooms_qs.values("name")[:1]),
+        ).values("room_name", "rack_name", "shelf_name")
 
         return list(rooms_info)
 
@@ -505,27 +498,31 @@ class ReportHelper:
         У каждой из этих книг есть история перемещения между полками с наименованием каждой из них:
         один атрибут - полки в алфавитном порядке, второй атрибут - в хронологическом.
         """
-
-        qq = MovementJournal.objects.filter(book=OuterRef("pk"))
-        tt = ArraySubquery(
-            qq.order_by("book_shelf_new__name").values(
+        qs_book = MovementJournal.objects.filter(book=OuterRef("pk"))
+        result1 = ArraySubquery(
+            qs_book.order_by("book_shelf_new__name").values(
                 "move_date", shelf_name=F("book_shelf_new__name")
             )
         )
 
-        tt1 = ArraySubquery(
-            qq.order_by("move_date").values(
+        result2 = ArraySubquery(
+            qs_book.order_by("move_date").values(
                 "move_date", shelf_name=F("book_shelf_new__name")
             )
         )
 
         qs_result = BookCard.objects.annotate(
-            book_name=F("name"), moving_shelfs_history=tt, moving_shelfs_history1=tt1
+            book_name=F("name"),
+            moving_shelfs_history=result1,
+            moving_shelfs_history1=result2,
         ).values("book_name", "moving_shelfs_history", "moving_shelfs_history1")
 
         return qs_result
 
 
+helper = ReportHelper()
+helper.get_books_moving_history()
+"""
 reader = Reader.objects.get(id=1)
 book1 = BookCard.objects.get(id=785)
 book2 = BookCard.objects.get(id=578)
@@ -537,7 +534,7 @@ except ValidationError as exc:
     print(exc)
 
 try:
-    # reader.take_book(book2, True)
+    #reader.take_book(book2, True)
     reader.take_book(book3, True)
 except ValidationError as exc:
     print(exc)
@@ -547,3 +544,4 @@ try:
     reader.return_book(book465)
 except ValidationError as exc:
     print(exc)
+"""
